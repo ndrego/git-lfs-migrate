@@ -72,6 +72,10 @@ public class GitConverter {
         if (revObject instanceof RevBlob) {
           return copy(id);
         }
+	if (revObject instanceof RevTag) {
+	  final RevTag revTag = (RevTag) revObject;
+	  return convert(revTag.getObject().getId());
+	}
         throw new IllegalStateException("Unsupported object type: " + id.getName() + " (" + revObject.getClass().getName() + ")");
       } catch (IOException e) {
         rethrow(e);
@@ -240,6 +244,7 @@ public class GitConverter {
     conn.addRequestProperty("Content-Type", "application/vnd.git-lfs+json");
 
     conn.setDoOutput(true);
+    System.out.println("Uploading " + hash + ", size: " + size + " to: " + conn.getURL().getPath());
     try (Writer writer = new OutputStreamWriter(conn.getOutputStream(), StandardCharsets.UTF_8)) {
       JsonWriter json = new JsonWriter(writer);
       json.beginObject();
@@ -247,8 +252,10 @@ public class GitConverter {
       json.name("size").value(size);
       json.endObject();
     }
+
     if (conn.getResponseCode() == 200) {
       // Already uploaded.
+      System.out.println("Already uploaded.");
       return;
     }
 
